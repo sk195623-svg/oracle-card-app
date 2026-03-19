@@ -4,143 +4,24 @@ import random
 import base64
 import re
 import time
+import uuid
 from pathlib import Path
 from typing import List, Dict, Optional
-from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
-import os
 
 import streamlit as st
+from PIL import Image, ImageDraw, ImageFont
 from openai import OpenAI
 
-# ▼ここに入れる
+# =========================
+# 基本設定
+# =========================
 BASE_DIR = Path(__file__).resolve().parent
 IMAGE_DIR = BASE_DIR / "images"
 IMAGE_DIR.mkdir(exist_ok=True)
 
-from typing import List, Dict, Optional
+CARDS_JSON = BASE_DIR / "cards.json"
 
-import streamlit as st
-from openai import OpenAI
-
-def display_one_card_with_effect(card: dict) -> None:
-    area = st.empty()
-
-    area.markdown(
-        """
-        <div style="
-            background: linear-gradient(135deg, #ece6f6, #f7f1ff);
-            border-radius: 20px;
-            padding: 50px 20px;
-            margin: 12px 0;
-            text-align: center;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-            color: #7b6f8f;
-            font-size: 1.1rem;
-            font-weight: bold;
-        ">
-            カードを引いています…
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    time.sleep(1.0)
-
-    with area.container():
-        st.markdown(
-            f"""
-            <div style="
-                background: rgba(255,255,255,0.92);
-                border-radius: 20px;
-                padding: 20px;
-                margin: 12px 0;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-                border: 1px solid rgba(255,255,255,0.7);
-            ">
-                <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 12px;">
-                    {card.get('name', '名称未設定')}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        image_path = card.get("image", "")
-        if image_path:
-            st.image(image_path, width=280)
-
-        st.write(card.get("message", ""))
-
-
-def display_three_cards_sequential(cards: list) -> None:
-    labels = ["過去", "現在", "未来"]
-    placeholders = [st.empty(), st.empty(), st.empty()]
-
-    for i, card in enumerate(cards):
-        placeholders[i].markdown(
-            """
-            <div style="
-                background: linear-gradient(135deg, #ece6f6, #f7f1ff);
-                border-radius: 20px;
-                padding: 40px 20px;
-                margin: 12px 0;
-                text-align: center;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-                color: #7b6f8f;
-                font-size: 1.1rem;
-                font-weight: bold;
-            ">
-                カードを開いています…
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        time.sleep(0.8)
-
-        with placeholders[i].container():
-            st.markdown(
-                f"""
-                <div style="
-                    background: rgba(255,255,255,0.92);
-                    border-radius: 20px;
-                    padding: 20px;
-                    margin: 12px 0;
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-                    border: 1px solid rgba(255,255,255,0.7);
-                ">
-                    <div style="
-                        font-size: 0.95rem;
-                        color: #7b6f8f;
-                        margin-bottom: 8px;
-                        letter-spacing: 0.08em;
-                    ">
-                        {labels[i]}
-                    </div>
-                    <div style="
-                        font-size: 1.4rem;
-                        font-weight: bold;
-                        margin-bottom: 12px;
-                    ">
-                        {card.get('name', '名称未設定')}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            image_path = card.get("image", "")
-            if image_path:
-                st.image(image_path, width=260)
-
-            st.write(card.get("message", ""))
-
-        time.sleep(0.6)
-
-# =========================
-# ページ設定（最優先）
-# =========================
 st.set_page_config(
     page_title="Oracle Card Reader",
     page_icon="🔮",
@@ -148,6 +29,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+API_KEY = os.getenv("OPENAI_API_KEY", "")
+client = OpenAI(api_key=API_KEY) if API_KEY else None
+
+
+# =========================
+# CSS
+# =========================
 def apply_custom_css():
     st.markdown("""
     <style>
@@ -165,7 +53,6 @@ def apply_custom_css():
         color: #44334d;
         letter-spacing: 0.02em;
     }
-
 
     .soft-card {
         background: rgba(255,255,255,0.88);
@@ -243,86 +130,80 @@ def apply_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
+
 apply_custom_css()
 
-CARDS_JSON = "cards.json"
-IMAGE_DIR = Path("images")
-IMAGE_DIR.mkdir(exist_ok=True)
-
-API_KEY = os.getenv("OPENAI_API_KEY", "")
-client = OpenAI(api_key=API_KEY) if API_KEY else None
 
 # =========================
-# ⭐ カード表示関数（ここ！）
+# 補助
 # =========================
-import os
-
-def display_result_card(card: dict, show_ai_message: str | None = None):
-    st.markdown('<div class="result-card">', unsafe_allow_html=True)
-
-    st.markdown(
-        f'<div class="card-title">✨ {card.get("name", "名称未設定")}</div>',
-        unsafe_allow_html=True
-    )
-
-    image_path = card.get("image", "")
-    if image_path and os.path.exists(image_path):
-        st.image(image_path, width=320)
-
-    st.markdown('<div class="section-label">カードメッセージ</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="card-message">{card.get("message", "")}</div>',
-        unsafe_allow_html=True
-    )
-
-    if show_ai_message:
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown('<div class="section-label">AIリーディング</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="card-message">{show_ai_message}</div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def display_three_cards(cards: list[dict]):
-    labels = ["過去", "現在", "未来"]
-    cols = st.columns(3)
-
-    for i, card in enumerate(cards[:3]):
-        with cols[i]:
-            st.markdown(
-                f"""
-                <div class="result-card">
-                    <div class="section-label">🔮 {labels[i]}</div>
-                    <div class="card-title">{card.get("name", "名称未設定")}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            image_path = card.get("image", "")
-            if image_path and os.path.exists(image_path):
-                st.image(image_path, width=220)
-
-            st.markdown(
-                f'<div class="card-message">{card.get("message", "")}</div>',
-                unsafe_allow_html=True
-            )
+def new_card_id() -> str:
+    return f"card_{uuid.uuid4().hex[:12]}"
 
 
-def display_three_cards_responsive(cards: list[dict]):
-    labels = ["過去", "現在", "未来"]
-    is_mobile = st.session_state.get("is_mobile", False)
-
-    if is_mobile:
-        for i, card in enumerate(cards[:3]):
-            st.markdown(f"### 🔮 {labels[i]}")
-            display_result_card(card)
-    else:
-        display_three_cards(cards)
+def normalize_text(s: str) -> str:
+    return re.sub(r"\s+", " ", str(s)).strip()
 
 
+def make_safe_filename(name: str) -> str:
+    safe = re.sub(r'[\\/:*?"<>|]+', "_", name)
+    safe = re.sub(r"\s+", "_", safe).strip("._ ")
+    return safe or "card"
+
+
+def ensure_card_id(card: Dict) -> Dict:
+    if not str(card.get("id", "")).strip():
+        card["id"] = new_card_id()
+    return card
+
+
+def ensure_cards_have_ids(cards: List[Dict]) -> List[Dict]:
+    changed = False
+    for card in cards:
+        if not str(card.get("id", "")).strip():
+            card["id"] = new_card_id()
+            changed = True
+    if changed:
+        save_cards(cards)
+    return cards
+
+
+# =========================
+# 画像パス安全処理
+# =========================
+def resolve_image_path(image_path: str) -> str:
+    if not image_path:
+        return ""
+
+    try:
+        p = Path(str(image_path))
+
+        if p.is_absolute():
+            return str(p) if p.exists() else ""
+
+        abs_path = (BASE_DIR / p).resolve()
+        return str(abs_path) if abs_path.exists() else ""
+    except Exception:
+        return ""
+
+
+def get_display_image_path(card: dict) -> str:
+    candidates = [
+        card.get("card_image", ""),
+        card.get("image", ""),
+    ]
+
+    for path in candidates:
+        resolved = resolve_image_path(path)
+        if resolved:
+            return resolved
+
+    return ""
+
+
+# =========================
+# セッション
+# =========================
 def init_session_state():
     if "history" not in st.session_state:
         st.session_state["history"] = []
@@ -336,7 +217,64 @@ def init_session_state():
     if "last_ai_text" not in st.session_state:
         st.session_state["last_ai_text"] = ""
 
+    if "ai_card_theme" not in st.session_state:
+        st.session_state["ai_card_theme"] = "やさしい癒し"
 
+    if "show_sequence_done" not in st.session_state:
+        st.session_state["show_sequence_done"] = False
+
+    if "is_mobile" not in st.session_state:
+        st.session_state["is_mobile"] = False
+
+
+# =========================
+# データ入出力
+# =========================
+def load_cards() -> List[Dict]:
+    if not CARDS_JSON.exists():
+        return []
+
+    try:
+        with open(CARDS_JSON, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if not isinstance(data, list):
+                return []
+            return ensure_cards_have_ids(data)
+    except Exception:
+        return []
+
+
+def save_cards(cards: List[Dict]) -> None:
+    normalized_cards = [ensure_card_id(dict(card)) for card in cards]
+    with open(CARDS_JSON, "w", encoding="utf-8") as f:
+        json.dump(normalized_cards, f, ensure_ascii=False, indent=2)
+
+
+def ensure_sample_cards() -> None:
+    if CARDS_JSON.exists():
+        cards = load_cards()
+        if cards:
+            save_cards(cards)
+            return
+
+    sample_cards = [
+        {"id": new_card_id(), "name": "月のしずく", "message": "静かな時間の中に、あなたへの答えがやさしく落ちてきます。急がず、心の声を聞いてください。", "image": ""},
+        {"id": new_card_id(), "name": "光の扉", "message": "新しい流れが始まろうとしています。少しの勇気が、未来の扉を開きます。", "image": ""},
+        {"id": new_card_id(), "name": "風の導き", "message": "変化は恐れるものではなく、あなたを新しい場所へ運ぶ追い風です。", "image": ""},
+        {"id": new_card_id(), "name": "星の約束", "message": "願いはすでに宇宙へ届いています。信じる気持ちを持ち続けてください。", "image": ""},
+        {"id": new_card_id(), "name": "花ひらく心", "message": "優しさを自分にも向けるとき、心は自然にひらいていきます。", "image": ""},
+        {"id": new_card_id(), "name": "朝の祝福", "message": "今日という一日は、あなたに新しい祝福を届けるために始まっています。", "image": ""},
+        {"id": new_card_id(), "name": "水鏡", "message": "感情を否定せず映してみましょう。そこに大切な本音があります。", "image": ""},
+        {"id": new_card_id(), "name": "虹の橋", "message": "今の迷いは、次の希望へ渡るための途中にあります。安心して進んでください。", "image": ""},
+        {"id": new_card_id(), "name": "大地の抱擁", "message": "足元を整えれば、運は自然と安定します。まずは日常を大切に。", "image": ""},
+        {"id": new_card_id(), "name": "天使のささやき", "message": "見えない助けはすぐそばにあります。ひとりで抱え込まなくて大丈夫です。", "image": ""}
+    ]
+    save_cards(sample_cards)
+
+
+# =========================
+# 共通処理
+# =========================
 def save_history(title: str):
     st.session_state["history"].append({
         "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -361,104 +299,128 @@ def display_history(history_list):
         )
 
 
+def find_card_index(cards: List[Dict], target: Dict) -> int:
+    target_id = str(target.get("id", "")).strip()
+    if target_id:
+        for i, card in enumerate(cards):
+            if str(card.get("id", "")).strip() == target_id:
+                return i
+
+    target_name = normalize_text(target.get("name", ""))
+    target_message = normalize_text(target.get("message", ""))
+
+    for i, card in enumerate(cards):
+        if (
+            normalize_text(card.get("name", "")) == target_name
+            and normalize_text(card.get("message", "")) == target_message
+        ):
+            return i
+    return -1
+
+
+def normalize_card_paths():
+    cards = load_cards()
+    changed = 0
+
+    for card in cards:
+        for key in ["image", "card_image"]:
+            p = str(card.get(key, "")).strip()
+            if not p:
+                continue
+
+            p2 = p.replace("\\", "/")
+
+            if "/images/" in p2:
+                p2 = "images/" + p2.split("/images/", 1)[1]
+            elif p2.startswith("images/"):
+                pass
+            else:
+                continue
+
+            if card.get(key) != p2:
+                card[key] = p2
+                changed += 1
+
+    save_cards(cards)
+    return changed
+
+
+def clean_missing_image_paths():
+    cards = load_cards()
+    changed = 0
+
+    for card in cards:
+        for key in ["image", "card_image"]:
+            path = str(card.get(key, "")).strip()
+            if not path:
+                continue
+
+            resolved = resolve_image_path(path)
+            if not resolved:
+                card[key] = ""
+                changed += 1
+
+    save_cards(cards)
+    return changed
+
+
+def optimize_all_images():
+    count = 0
+
+    for p in IMAGE_DIR.glob("*"):
+        if p.suffix.lower() not in [".png", ".jpg", ".jpeg", ".webp"]:
+            continue
+
+        try:
+            optimize_image_file(str(p))
+            count += 1
+        except Exception:
+            pass
+
+    return count
+
+
+def delete_unused_images():
+    cards = load_cards()
+    used_files = set()
+
+    for card in cards:
+        for key in ["image", "card_image"]:
+            path = str(card.get(key, "")).strip()
+            if not path:
+                continue
+
+            resolved = resolve_image_path(path)
+            if resolved:
+                used_files.add(str(Path(resolved).resolve()))
+
+    deleted = 0
+
+    for p in IMAGE_DIR.glob("*"):
+        if p.suffix.lower() not in [".png", ".jpg", ".jpeg", ".webp"]:
+            continue
+
+        abs_p = str(p.resolve())
+        if abs_p not in used_files:
+            try:
+                p.unlink()
+                deleted += 1
+            except Exception:
+                pass
+
+    return deleted
+    return changed
+
+
 # =========================
-# データ入出力
+# 画像カード作成
 # =========================
-def load_cards() -> List[Dict]:
-    if not os.path.exists(CARDS_JSON):
-        return []
-
-    try:
-        with open(CARDS_JSON, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, list):
-                return data
-            return []
-    except Exception:
-        return []
-
-
-def save_cards(cards: List[Dict]) -> None:
-    with open(CARDS_JSON, "w", encoding="utf-8") as f:
-        json.dump(cards, f, ensure_ascii=False, indent=2)
-
-
-def ensure_sample_cards() -> None:
-    if os.path.exists(CARDS_JSON):
-        return
-
-    sample_cards = [
-        {
-            "name": "月のしずく",
-            "message": "静かな時間の中に、あなたへの答えがやさしく落ちてきます。急がず、心の声を聞いてください。",
-            "image": ""
-        },
-        {
-            "name": "光の扉",
-            "message": "新しい流れが始まろうとしています。少しの勇気が、未来の扉を開きます。",
-            "image": ""
-        },
-        {
-            "name": "風の導き",
-            "message": "変化は恐れるものではなく、あなたを新しい場所へ運ぶ追い風です。",
-            "image": ""
-        },
-        {
-            "name": "星の約束",
-            "message": "願いはすでに宇宙へ届いています。信じる気持ちを持ち続けてください。",
-            "image": ""
-        },
-        {
-            "name": "花ひらく心",
-            "message": "優しさを自分にも向けるとき、心は自然にひらいていきます。",
-            "image": ""
-        },
-        {
-            "name": "朝の祝福",
-            "message": "今日という一日は、あなたに新しい祝福を届けるために始まっています。",
-            "image": ""
-        },
-        {
-            "name": "水鏡",
-            "message": "感情を否定せず映してみましょう。そこに大切な本音があります。",
-            "image": ""
-        },
-        {
-            "name": "虹の橋",
-            "message": "今の迷いは、次の希望へ渡るための途中にあります。安心して進んでください。",
-            "image": ""
-        },
-        {
-            "name": "大地の抱擁",
-            "message": "足元を整えれば、運は自然と安定します。まずは日常を大切に。",
-            "image": ""
-        },
-        {
-            "name": "天使のささやき",
-            "message": "見えない助けはすぐそばにあります。ひとりで抱え込まなくて大丈夫です。",
-            "image": ""
-        }
-    ]
-    save_cards(sample_cards)
-
-
-# =========================
-# 共通処理
-# =========================
-def normalize_text(s: str) -> str:
-    return re.sub(r"\s+", " ", str(s)).strip()
-
-
-def make_safe_filename(name: str) -> str:
-    safe = re.sub(r'[\\/:*?"<>|]+', "_", name)
-    safe = re.sub(r"\s+", "_", safe).strip("._ ")
-    return safe or "card"
-
 def get_japanese_font(size: int):
     font_candidates = [
         "C:/Windows/Fonts/meiryo.ttc",
         "C:/Windows/Fonts/YuGothM.ttc",
         "C:/Windows/Fonts/msgothic.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ]
 
     for path in font_candidates:
@@ -469,6 +431,7 @@ def get_japanese_font(size: int):
                 pass
 
     return ImageFont.load_default()
+
 
 def create_card_design(
     image_path: str,
@@ -483,11 +446,9 @@ def create_card_design(
     title_area_h = 180
     image_area_h = card_height - margin * 2 - title_area_h
 
-    # 背景カード
     card = Image.new("RGB", (card_width, card_height), "white")
     draw = ImageDraw.Draw(card)
 
-    # 元画像をカード上部に収める
     target_w = card_width - margin * 2
     target_h = image_area_h
 
@@ -498,7 +459,6 @@ def create_card_design(
     paste_y = margin + (target_h - img.height) // 2
     card.paste(img, (paste_x, paste_y))
 
-    # 外枠
     draw.rounded_rectangle(
         [(8, 8), (card_width - 8, card_height - 8)],
         radius=28,
@@ -506,7 +466,6 @@ def create_card_design(
         width=6
     )
 
-    # 内側枠
     draw.rounded_rectangle(
         [(22, 22), (card_width - 22, card_height - 22)],
         radius=24,
@@ -514,7 +473,6 @@ def create_card_design(
         width=2
     )
 
-    # タイトル帯
     title_top = card_height - title_area_h - margin
     title_bottom = card_height - margin
 
@@ -526,9 +484,7 @@ def create_card_design(
         width=3
     )
 
-    # タイトル文字
     title_font = get_japanese_font(52)
-
     bbox = draw.textbbox((0, 0), card_name, font=title_font)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
@@ -536,32 +492,14 @@ def create_card_design(
     text_x = (card_width - text_w) // 2
     text_y = title_top + (title_area_h - text_h) // 2 - 8
 
-    draw.text(
-        (text_x, text_y),
-        card_name,
-        font=title_font,
-        fill=(70, 60, 45)
-    )
+    draw.text((text_x, text_y), card_name, font=title_font, fill=(70, 60, 45))
 
-    # 保存先
     if output_path is None:
         p = Path(image_path)
         output_path = str(p.parent / f"{p.stem}_card.png")
 
     card.save(output_path)
     return output_path
-
-def find_card_index(cards: List[Dict], target: Dict) -> int:
-    target_name = normalize_text(target.get("name", ""))
-    target_message = normalize_text(target.get("message", ""))
-
-    for i, card in enumerate(cards):
-        if (
-            normalize_text(card.get("name", "")) == target_name
-            and normalize_text(card.get("message", "")) == target_message
-        ):
-            return i
-    return -1
 
 
 # =========================
@@ -598,13 +536,13 @@ def generate_ai_card(theme: str) -> Dict:
     try:
         data = json.loads(text)
     except Exception:
-        # 念のためJSON部分だけ抜き出す
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if not match:
             raise ValueError("AI応答をJSONとして読めませんでした。")
         data = json.loads(match.group(0))
 
     card = {
+        "id": new_card_id(),
         "name": str(data.get("name", "")).strip(),
         "message": str(data.get("message", "")).strip(),
         "image": ""
@@ -668,6 +606,27 @@ Style requirements:
 """
     return prompt.strip()
 
+def optimize_image_file(
+    input_path: str,
+    max_width: int = 768,
+    max_height: int = 1152,
+    png_compress_level: int = 9
+) -> str:
+    img = Image.open(input_path)
+
+    if img.mode not in ("RGB", "RGBA"):
+        img = img.convert("RGBA")
+
+    img.thumbnail((max_width, max_height))
+
+    img.save(
+        input_path,
+        format="PNG",
+        optimize=True,
+        compress_level=png_compress_level
+    )
+    return input_path
+
 
 def generate_card_image(card: Dict, theme: str = "やさしい癒し") -> str:
     if client is None:
@@ -687,7 +646,6 @@ def generate_card_image(card: Dict, theme: str = "やさしい癒し") -> str:
     safe_name = make_safe_filename(card.get("name", "card"))
     file_path = IMAGE_DIR / f"{safe_name}.png"
 
-    # 同名がある場合は連番
     if file_path.exists():
         n = 2
         while True:
@@ -700,9 +658,9 @@ def generate_card_image(card: Dict, theme: str = "やさしい癒し") -> str:
     with open(file_path, "wb") as f:
         f.write(image_bytes)
 
-    st.success(f"今回の保存先: {file_path}")
+    optimize_image_file(str(file_path))
 
-    # cards.json には相対パスで保存
+    st.success(f"今回の保存先: {file_path}")
     return str(Path("images") / file_path.name)
 
 
@@ -716,44 +674,240 @@ def attach_image_to_saved_card(
     if idx == -1:
         return False
 
-    cards[idx]["image"] = image_path
+    cards[idx]["image"] = str(Path(image_path).as_posix()) if image_path else ""
+
     if card_image_path:
-        cards[idx]["card_image"] = card_image_path
+        cards[idx]["card_image"] = str(Path(card_image_path).as_posix())
 
     save_cards(cards)
     return True
 
 
 # =========================
-# 画面表示補助
+# 表示関数
 # =========================
+def display_one_card_with_effect(card: dict) -> None:
+    area = st.empty()
+
+    area.markdown(
+        """
+        <div style="
+            background: linear-gradient(135deg, #ece6f6, #f7f1ff);
+            border-radius: 20px;
+            padding: 50px 20px;
+            margin: 12px 0;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            color: #7b6f8f;
+            font-size: 1.1rem;
+            font-weight: bold;
+        ">
+            カードを引いています…
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    time.sleep(1.0)
+
+    with area.container():
+        st.markdown(
+            f"""
+            <div style="
+                background: rgba(255,255,255,0.92);
+                border-radius: 20px;
+                padding: 20px;
+                margin: 12px 0;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+                border: 1px solid rgba(255,255,255,0.7);
+            ">
+                <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 12px;">
+                    {card.get('name', '名称未設定')}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        show_path = get_display_image_path(card)
+        if show_path:
+            try:
+                st.image(show_path, width=280)
+            except Exception as e:
+                st.warning(f"画像を表示できませんでした: {e}")
+                st.info("このカードは画像なしで表示しています。")
+
+        st.write(card.get("message", ""))
+
+
+def display_three_cards_sequential(cards: list) -> None:
+    labels = ["過去", "現在", "未来"]
+    placeholders = [st.empty(), st.empty(), st.empty()]
+
+    for i, card in enumerate(cards[:3]):
+        placeholders[i].markdown(
+            """
+            <div style="
+                background: linear-gradient(135deg, #ece6f6, #f7f1ff);
+                border-radius: 20px;
+                padding: 40px 20px;
+                margin: 12px 0;
+                text-align: center;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+                color: #7b6f8f;
+                font-size: 1.1rem;
+                font-weight: bold;
+            ">
+                カードを開いています…
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        time.sleep(0.8)
+
+        with placeholders[i].container():
+            st.markdown(
+                f"""
+                <div style="
+                    background: rgba(255,255,255,0.92);
+                    border-radius: 20px;
+                    padding: 20px;
+                    margin: 12px 0;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+                    border: 1px solid rgba(255,255,255,0.7);
+                ">
+                    <div style="
+                        font-size: 0.95rem;
+                        color: #7b6f8f;
+                        margin-bottom: 8px;
+                        letter-spacing: 0.08em;
+                    ">
+                        {labels[i]}
+                    </div>
+                    <div style="
+                        font-size: 1.4rem;
+                        font-weight: bold;
+                        margin-bottom: 12px;
+                    ">
+                        {card.get('name', '名称未設定')}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            show_path = get_display_image_path(card)
+            if show_path:
+                try:
+                    st.image(show_path, width=260)
+                except Exception as e:
+                    st.warning(f"画像を表示できませんでした: {e}")
+                    st.info("このカードは画像なしで表示しています。")
+
+            st.write(card.get("message", ""))
+
+        time.sleep(0.6)
+
+
+def display_result_card(card: dict, show_ai_message: Optional[str] = None):
+    st.markdown('<div class="result-card">', unsafe_allow_html=True)
+
+    st.markdown(
+        f'<div class="card-title">✨ {card.get("name", "名称未設定")}</div>',
+        unsafe_allow_html=True
+    )
+
+    show_path = get_display_image_path(card)
+    if show_path:
+        try:
+            st.image(show_path, width=320)
+        except Exception as e:
+            st.warning(f"画像を表示できませんでした: {e}")
+
+    st.markdown('<div class="section-label">カードメッセージ</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="card-message">{card.get("message", "")}</div>',
+        unsafe_allow_html=True
+    )
+
+    if show_ai_message:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="section-label">AIリーディング</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="card-message">{show_ai_message}</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def display_three_cards(cards: List[Dict]):
+    labels = ["過去", "現在", "未来"]
+    cols = st.columns(3)
+
+    for i, card in enumerate(cards[:3]):
+        with cols[i]:
+            st.markdown(
+                f"""
+                <div class="result-card">
+                    <div class="section-label">🔮 {labels[i]}</div>
+                    <div class="card-title">{card.get("name", "名称未設定")}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            show_path = get_display_image_path(card)
+            if show_path:
+                try:
+                    st.image(show_path, width=220)
+                except Exception as e:
+                    st.warning(f"画像を表示できませんでした: {e}")
+
+            st.markdown(
+                f'<div class="card-message">{card.get("message", "")}</div>',
+                unsafe_allow_html=True
+            )
+
+
+def display_three_cards_responsive(cards: List[Dict]):
+    is_mobile = st.session_state.get("is_mobile", False)
+    labels = ["過去", "現在", "未来"]
+
+    if is_mobile:
+        for i, card in enumerate(cards[:3]):
+            st.markdown(f"### 🔮 {labels[i]}")
+            display_result_card(card)
+    else:
+        display_three_cards(cards)
+
+
 def display_card(card: Dict, show_actions: bool = False, index: int = 0, theme: str = "やさしい癒し") -> None:
     st.markdown(f"### {card.get('name', '名称未設定')}")
 
-    card_image_path = card.get("card_image", "")
-    image_path = card.get("image", "")
-
-    show_path = ""
-    if card_image_path and os.path.exists(card_image_path):
-        show_path = card_image_path
-    elif image_path and os.path.exists(image_path):
-        show_path = image_path
-
+    show_path = get_display_image_path(card)
     if show_path:
-        st.image(show_path, width=260)
+        try:
+            st.image(show_path, width=260)
+        except Exception as e:
+            st.warning(f"画像を表示できませんでした: {e}")
 
     st.write(card.get("message", ""))
 
     if show_actions:
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
-            if st.button("このカード画像を生成", key=f"gen_img_{index}", width="stretch"):
+            button_key = f"gen_img_{card.get('id', index)}"
+            if st.button("このカード画像を生成", key=button_key, use_container_width=True):
                 try:
                     with st.spinner("画像生成中..."):
                         path = generate_card_image(card, theme=theme)
 
-                    abs_image_path = str((BASE_DIR / path).resolve()) if not os.path.isabs(path) else path
+                    abs_image_path = resolve_image_path(path)
+                    if not abs_image_path:
+                        raise FileNotFoundError(f"生成画像が見つかりません: {path}")
 
                     with st.spinner("カード化中..."):
                         card_path_abs = create_card_design(
@@ -779,9 +933,17 @@ def display_card(card: Dict, show_actions: bool = False, index: int = 0, theme: 
                     st.error(f"画像生成エラー: {e}")
 
         with col2:
-            if card_image_path and os.path.exists(card_image_path):
-                st.caption("カード画像あり")
-            elif image_path and os.path.exists(image_path):
+            delete_key = f"delete_card_{card.get('id', index)}"
+            if st.button("このカードを削除", key=delete_key, use_container_width=True):
+                ok = delete_card_and_images(card)
+                if ok:
+                    st.success("カードと画像を削除しました。")
+                    st.rerun()
+                else:
+                    st.warning("カード削除に失敗しました。")
+
+        with col3:
+            if show_path:
                 st.caption("画像あり")
             else:
                 st.caption("画像なし")
@@ -794,15 +956,8 @@ def display_card(card: Dict, show_actions: bool = False, index: int = 0, theme: 
 # =========================
 ensure_sample_cards()
 init_session_state()
-
-if "ai_card_theme" not in st.session_state:
-    st.session_state["ai_card_theme"] = "やさしい癒し"
-
-# ←ここに追加（②）
-if "show_sequence_done" not in st.session_state:
-    st.session_state["show_sequence_done"] = False
-
 cards = load_cards()
+
 
 # =========================
 # タイトル
@@ -812,6 +967,7 @@ st.caption("カード作成・AI生成・画像生成つき")
 
 if not API_KEY:
     st.warning("OPENAI_API_KEY が未設定です。AIカード生成と画像生成は使えません。")
+
 
 # =========================
 # サイドバー
@@ -844,14 +1000,16 @@ with st.sidebar:
     st.markdown("---")
     st.write(f"登録カード数: {len(cards)}")
 
-    if st.button("履歴をクリア", width="stretch"):
+    if st.button("履歴をクリア", use_container_width=True):
         st.session_state["history"] = []
         st.success("履歴をクリアしました。")
+
 
 # =========================
 # タブ
 # =========================
 tab1, tab2, tab3 = st.tabs(["🔮 占う", "🗂 カード一覧・管理", "🕘 履歴"])
+
 
 # =========================
 # tab1 占う
@@ -869,13 +1027,13 @@ with tab1:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        draw_one = st.button("1枚引き", width="stretch", key="draw_one_tab1")
+        draw_one = st.button("1枚引き", use_container_width=True, key="draw_one_tab1")
 
     with col2:
-        draw_three = st.button("3枚引き", width="stretch", key="draw_three_tab1")
+        draw_three = st.button("3枚引き", use_container_width=True, key="draw_three_tab1")
 
     with col3:
-        draw_ai = st.button("AI総合リーディング", width="stretch", key="draw_ai_tab1")
+        draw_ai = st.button("AI総合リーディング", use_container_width=True, key="draw_ai_tab1")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -959,7 +1117,6 @@ with tab1:
 
     if result_type == "one" and result_cards:
         st.markdown("### あなたへのカード")
-
         if not sequence_done:
             display_one_card_with_effect(result_cards[0])
             st.session_state["show_sequence_done"] = True
@@ -968,7 +1125,6 @@ with tab1:
 
     elif result_type == "three" and result_cards:
         st.markdown("### 3枚引きの結果")
-
         if not sequence_done:
             display_three_cards_sequential(result_cards)
             st.session_state["show_sequence_done"] = True
@@ -991,13 +1147,14 @@ with tab2:
     with st.form("manual_add_form"):
         new_name = st.text_input("カード名")
         new_message = st.text_area("メッセージ", height=100)
-        submitted = st.form_submit_button("追加する", width="stretch")
+        submitted = st.form_submit_button("追加する", use_container_width=True)
 
         if submitted:
             if not new_name.strip() or not new_message.strip():
                 st.error("カード名とメッセージを入力してください。")
             else:
                 cards.append({
+                    "id": new_card_id(),
                     "name": new_name.strip(),
                     "message": new_message.strip(),
                     "image": ""
@@ -1008,12 +1165,42 @@ with tab2:
 
     st.divider()
 
+    st.subheader("画像データの整理")
+
+    col_fix1, col_fix2, col_fix3, col_fix4 = st.columns(4)
+
+    with col_fix1:
+        if st.button("画像パスを修正する", key="normalize_image_paths", use_container_width=True):
+            fixed = normalize_card_paths()
+            st.success(f"修正件数: {fixed}")
+            st.rerun()
+
+    with col_fix2:
+        if st.button("消えた画像パスを整理する", key="clean_missing_image_paths", use_container_width=True):
+            fixed = clean_missing_image_paths()
+            st.success(f"整理件数: {fixed}")
+            st.rerun()
+
+    with col_fix3:
+        if st.button("画像を軽量化する", key="optimize_all_images", use_container_width=True):
+            fixed = optimize_all_images()
+            st.success(f"軽量化件数: {fixed}")
+            st.rerun()
+
+    with col_fix4:
+        if st.button("未使用画像を削除する", key="delete_unused_images", use_container_width=True):
+            fixed = delete_unused_images()
+            st.success(f"削除件数: {fixed}")
+            st.rerun()
+
+    st.divider()
+
     st.subheader("AIでカードを1枚生成")
 
     col_a, col_b = st.columns(2)
 
     with col_b:
-        if st.button("AIで1枚＋画像も生成", key="one_ai_generate_with_image", width="stretch"):
+        if st.button("AIで1枚＋画像も生成", key="one_ai_generate_with_image", use_container_width=True):
             try:
                 with st.spinner("AIカード生成中..."):
                     card = add_ai_card_to_json(
@@ -1026,7 +1213,9 @@ with tab2:
                         theme=st.session_state.get("ai_card_theme", "やさしい癒し")
                     )
 
-                abs_image_path = str((BASE_DIR / image_path).resolve()) if not os.path.isabs(image_path) else image_path
+                abs_image_path = resolve_image_path(image_path)
+                if not abs_image_path:
+                    raise FileNotFoundError(f"生成画像が見つかりません: {image_path}")
 
                 with st.spinner("カードデザイン作成中..."):
                     card_image_abs = create_card_design(
@@ -1067,7 +1256,7 @@ with tab2:
         key="generate_ai_images"
     )
 
-    if st.button("AIカードをまとめて生成して保存", key="bulk_generate_ai_cards", width="stretch"):
+    if st.button("AIカードをまとめて生成して保存", key="bulk_generate_ai_cards", use_container_width=True):
         try:
             with st.spinner("AIが複数カードを生成中です..."):
                 created_cards = add_multiple_ai_cards_to_json(
@@ -1100,7 +1289,7 @@ with tab2:
     latest_cards_for_images = load_cards()
     cards_without_image = [
         card for card in latest_cards_for_images
-        if not card.get("image") or not os.path.exists(card.get("image", ""))
+        if not get_display_image_path(card)
     ]
 
     st.write(f"画像未設定カード: {len(cards_without_image)}枚")
@@ -1119,7 +1308,7 @@ with tab2:
         )
 
     with col_d:
-        if st.button("未画像カードに画像を一括生成", key="generate_missing_images", width="stretch"):
+        if st.button("未画像カードに画像を一括生成", key="generate_missing_images", use_container_width=True):
             if not cards_without_image:
                 st.info("画像未設定カードはありません。")
             else:
@@ -1151,16 +1340,12 @@ with tab2:
         st.info("カードがまだありません。")
     else:
         show_only_with_image = st.checkbox("画像ありカードのみ表示", value=False, key="show_only_with_image")
+        show_debug = st.checkbox("画像デバッグ情報を表示", value=False, key="show_image_debug")
         keyword = st.text_input("カード検索", value="", key="card_search_keyword").strip()
 
         filtered_cards = []
         for card in latest_cards:
-            img = card.get("card_image") or card.get("image", "")
-
-            img_exists = False
-            if img:
-                abs_img = str((BASE_DIR / img).resolve()) if not os.path.isabs(img) else img
-                img_exists = os.path.exists(abs_img)
+            img_exists = bool(get_display_image_path(card))
 
             if show_only_with_image and not img_exists:
                 continue
@@ -1175,6 +1360,16 @@ with tab2:
         st.write(f"表示件数: {len(filtered_cards)}件")
 
         for idx, card in enumerate(filtered_cards):
+            if show_debug:
+                with st.expander(f"画像デバッグ情報: {card.get('name', '名称未設定')} / {card.get('id', '')}", expanded=False):
+                    debug_path = get_display_image_path(card)
+                    st.write("id:", card.get("id", ""))
+                    st.write("name:", card.get("name", ""))
+                    st.write("image:", card.get("image", ""))
+                    st.write("card_image:", card.get("card_image", ""))
+                    st.write("resolved:", debug_path)
+                    st.write("resolved exists:", os.path.exists(debug_path) if debug_path else False)
+
             display_card(
                 card,
                 show_actions=True,
