@@ -2,43 +2,309 @@
   {
     "id": "card_001",
     "name": "はじまりの光",
-    "message": "新しい流れがあなたの前に広がっています。小さな一歩でも未来は変わります。",
-    "image": "images/はじまりの光.png"
+    "type": "guide",
+    "message": "新しい術式が展開されようとしています。準備不足？それが正解です。魔法は、整いすぎた場所では発動しません。一歩で流れが書き換わります。",
+    "image": "images/guide_01.png"
   },
   {
     "id": "card_002",
     "name": "静かな月",
-    "message": "焦らなくて大丈夫です。今は心を整えることで次の扉が見えてきます。",
-    "image": "images/静かな月.png"
+    "type": "heal",
+    "message": "まだ満ちていません。だから美しいのです。無理に完成させようとすると、だいたい崩れます。今は静かに整える段階です。",
+    "image": "images/heal_01.png"
   },
   {
     "id": "card_003",
-    "name": "やわらかな灯",
-    "message": "深呼吸して、今日をやさしく撫でてあげましょう。あなたの歩幅で十分。小さな休みが、心の泉を静かに満たします。あたたかさは、あなたの中にもう在ります。",
-    "image": "images/やわらかな灯.png"
+    "name": "精霊の休息",
+    "type": "heal",
+    "message": "あなたの魔力、正常に回復中です。動かないのは失敗ではありません。むしろ上級者の選択です。",
+    "image": "images/heal_02.png"
   },
   {
     "id": "card_004",
-    "name": "やわらかな光",
-    "message": "深呼吸して、心の重さをそっと降ろしましょう。あなたは十分に頑張っています。小さな休息が、静かな力を満たしてくれます。安心して、今のあなたで大丈夫。",
-    "image": "images/やわらかな光_6.png"
+    "name": "過剰詠唱",
+    "type": "warn",
+    "message": "やりすぎです。術式はすでに完成しています。これ以上の詠唱は暴走の原因になります。少し黙りましょう。",
+    "image": "images/warn_01.png"
   },
   {
     "id": "card_005",
-    "name": "やわらぎ",
-    "message": "深呼吸して、心の結び目をそっとほどこう。今日は自分にやさしくしていい日。柔らかな光が胸をあたため、静かな元気がゆっくり戻ってきます。",
-    "image": "images/やわらぎ.png"
+    "name": "結び目の解呪",
+    "type": "heal",
+    "message": "強く引くほど、結び目は固くなります。ゆるめる、それが解呪です。今日は戦わない魔法を選びましょう。",
+    "image": "images/heal_03.png"
   },
   {
     "id": "card_006",
-    "name": "やわらかな光",
-    "message": "深呼吸して、胸のあたりにやわらかな光を感じて。あなたの歩みは十分に優しく、いまの速さで大丈夫。小さな喜びを抱きしめて、今日もね。",
-    "image": "images/やわらかな光_7.png"
+    "name": "遅き歩みの加護",
+    "type": "guide",
+    "message": "遅い？いいえ、正確です。速い者ほど迷います。あなたの歩みは、魔法的に非常に優秀です。",
+    "image": "images/guide_02.png"
   },
   {
     "id": "card_007",
-    "name": "やわらかな光",
-    "message": "深呼吸をひとつ。今日のあなたは、もう十分がんばっています。小さな休憩が心をほどき、静かなぬくもりが明日への力を育ててくれます。",
-    "image": "images/やわらかな光_8.png"
+    "name": "十分の術",
+    "type": "heal",
+    "message": "本日のあなた、すでに十分です。これ以上は余剰魔力です。無理に使う必要はありません。",
+    "image": "images/heal_01.png"
+  },
+  {
+    "id": "card_008",
+    "name": "反転の兆し",
+    "type": "shift",
+    "message": "流れが裏返りかけています。今見えているものが、そのまま続くとは限りません。注意深く。",
+    "image": "images/shift_01.png"
+  },
+  {
+    "id": "card_009",
+    "name": "小さき火種",
+    "type": "guide",
+    "message": "それはまだ小さい。しかし、十分です。大きな炎は、だいたいここから始まります。",
+    "image": "images/guide_03.png"
+  },
+  {
+    "id": "card_010",
+    "name": "過熱領域",
+    "type": "warn",
+    "message": "熱すぎます。今入ると、だいたい焦げます。少し冷めるまで待つのが賢者です。",
+    "image": "images/warn_02.png"
+  },
+  {
+    "id": "card_011",
+    "name": "凪の結界",
+    "type": "heal",
+    "message": "何も起きていません。それが正しい状態です。大きな変化の前は、だいたいこうなります。",
+    "image": "images/heal_02.png"
+  },
+  {
+    "id": "card_012",
+    "name": "流転の門",
+    "type": "shift",
+    "message": "流れが変わります。問題は、どちらに乗るかです。ぼんやりしていると置いていかれます。",
+    "image": "images/shift_02.png"
+  },
+  {
+    "id": "card_013",
+    "name": "見えざる補助魔法",
+    "type": "guide",
+    "message": "あなたは気づいていませんが、ちゃんと支援が入っています。見えないだけです。",
+    "image": "images/guide_01.png"
+  },
+  {
+    "id": "card_014",
+    "name": "魔力枯渇（偽）",
+    "type": "warn",
+    "message": "枯れていません。ただの使いすぎです。休めば戻ります。無理に出そうとすると逆に止まります。",
+    "image": "images/warn_03.png"
+  },
+  {
+    "id": "card_015",
+    "name": "再起動の呪文",
+    "type": "heal",
+    "message": "一度止まりましょう。再起動は、魔法の基本です。続けるより、止める方が強いこともあります。",
+    "image": "images/heal_03.png"
+  },
+  {
+    "id": "card_016",
+    "name": "予兆の風",
+    "type": "shift",
+    "message": "何かが動きます。まだ見えませんが、確実に来ています。準備しておきましょう。",
+    "image": "images/shift_03.png"
+  },
+  {
+    "id": "card_017",
+    "name": "軽き一歩の術",
+    "type": "guide",
+    "message": "大きく動く必要はありません。ほんの少しでいいのです。魔法は微差で世界を変えます。",
+    "image": "images/guide_02.png"
+  },
+  {
+    "id": "card_018",
+    "name": "過信の罠",
+    "type": "warn",
+    "message": "うまくいっている時ほど危険です。魔法は調子に乗ると裏切ります。慎重に。",
+    "image": "images/warn_01.png"
+  },
+  {
+    "id": "card_019",
+    "name": "朝露の祝福",
+    "type": "heal",
+    "message": "重たかった空気が少しずつ薄れていきます。今日は、思ったより優しい日になります。最初の深呼吸が鍵です。",
+    "image": "images/heal_01.png"
+  },
+  {
+    "id": "card_020",
+    "name": "境界のランプ",
+    "type": "guide",
+    "message": "ここから先は、昨日までのやり方では通れません。怖がらず、灯りを持って一歩だけ進みましょう。",
+    "image": "images/guide_03.png"
+  },
+  {
+    "id": "card_021",
+    "name": "静寂の保管庫",
+    "type": "heal",
+    "message": "失ったと思っていた力は、ただ静かな場所に保管されていただけです。取り戻す時が来ています。",
+    "image": "images/heal_02.png"
+  },
+  {
+    "id": "card_022",
+    "name": "焦りのひずみ",
+    "type": "warn",
+    "message": "急ぐほど視界がゆがみます。今は速度よりも精度です。立て直しは、ゆっくりの方が早いことがあります。",
+    "image": "images/warn_02.png"
+  },
+  {
+    "id": "card_023",
+    "name": "星屑の導線",
+    "type": "guide",
+    "message": "散らばって見える出来事は、実は一本の線でつながっています。小さな偶然を拾うと道が見えます。",
+    "image": "images/guide_01.png"
+  },
+  {
+    "id": "card_024",
+    "name": "逆巻く水面",
+    "type": "shift",
+    "message": "表面は静かでも、下では流れが変わっています。見えていない変化の方が本物です。",
+    "image": "images/shift_01.png"
+  },
+  {
+    "id": "card_025",
+    "name": "やわらかな盾",
+    "type": "heal",
+    "message": "守ることは、固くなることではありません。やわらかさは、強い防御になります。今日は優しさが防具です。",
+    "image": "images/heal_03.png"
+  },
+  {
+    "id": "card_026",
+    "name": "迷いの分岐石",
+    "type": "guide",
+    "message": "どちらも間違いではありません。大切なのは、選んだ後に自分で道を育てることです。",
+    "image": "images/guide_02.png"
+  },
+  {
+    "id": "card_027",
+    "name": "空回りの輪",
+    "type": "warn",
+    "message": "頑張りは本物です。ただ、今は力の向きが少しずれています。止める勇気が流れを戻します。",
+    "image": "images/warn_03.png"
+  },
+  {
+    "id": "card_028",
+    "name": "月影の通路",
+    "type": "shift",
+    "message": "はっきり見えない道ほど、今のあなたには合っています。明るすぎない場所でこそ、感覚が冴えます。",
+    "image": "images/shift_02.png"
+  },
+  {
+    "id": "card_029",
+    "name": "祝福の予備動作",
+    "type": "guide",
+    "message": "まだ本番ではありませんが、世界は静かに準備を始めています。整っていない今こそ、追い風の入口です。",
+    "image": "images/guide_03.png"
+  },
+  {
+    "id": "card_030",
+    "name": "沈黙する鐘",
+    "type": "heal",
+    "message": "鳴らないことにも意味があります。今は知らせが来ないのではなく、内側を聞く時間なのです。",
+    "image": "images/heal_01.png"
+  },
+  {
+    "id": "card_031",
+    "name": "高ぶりの反動",
+    "type": "warn",
+    "message": "盛り上がったあとには必ず揺り戻しがあります。落差に飲まれず、平熱を取り戻しましょう。",
+    "image": "images/warn_01.png"
+  },
+  {
+    "id": "card_032",
+    "name": "転写の翼",
+    "type": "shift",
+    "message": "あなたの思いは、形を変えて別の場所へ届こうとしています。今は伝え方の変化が鍵です。",
+    "image": "images/shift_03.png"
+  },
+  {
+    "id": "card_033",
+    "name": "森のささやき",
+    "type": "guide",
+    "message": "遠くの大きな答えより、足元の小さな声を聞きましょう。正解はたいてい静かに近くにあります。",
+    "image": "images/guide_01.png"
+  },
+  {
+    "id": "card_034",
+    "name": "ほどける氷紋",
+    "type": "heal",
+    "message": "凍っていた感情が少しずつ戻ってきます。無理に急がず、自然に溶けるのを待ちましょう。",
+    "image": "images/heal_02.png"
+  },
+  {
+    "id": "card_035",
+    "name": "警告灯の微笑み",
+    "type": "warn",
+    "message": "注意は敵ではありません。やさしい警告は、未来のあなたを守るために光っています。",
+    "image": "images/warn_02.png"
+  },
+  {
+    "id": "card_036",
+    "name": "裏返る砂時計",
+    "type": "shift",
+    "message": "時間の感覚が切り替わります。待つべきものと、今すぐ動くべきものが入れ替わりそうです。",
+    "image": "images/shift_01.png"
+  },
+  {
+    "id": "card_037",
+    "name": "灯火の継承",
+    "type": "guide",
+    "message": "受け取ったものを、今度はあなたが灯す番です。小さくても、その光は次へつながります。",
+    "image": "images/guide_02.png"
+  },
+  {
+    "id": "card_038",
+    "name": "白羽の休符",
+    "type": "heal",
+    "message": "止まることは中断ではなく、調律です。休符があるから旋律は美しく続きます。",
+    "image": "images/heal_03.png"
+  },
+  {
+    "id": "card_039",
+    "name": "曇天の早合点",
+    "type": "warn",
+    "message": "空が曇ったからといって、嵐とは限りません。今は決めつけず、もう少し様子を見ましょう。",
+    "image": "images/warn_03.png"
+  },
+  {
+    "id": "card_040",
+    "name": "きざしの螺旋",
+    "type": "shift",
+    "message": "同じ場所を回っているようで、実は少しずつ上がっています。変化は直線ではなく螺旋です。",
+    "image": "images/shift_02.png"
+  },
+  {
+    "id": "card_041",
+    "name": "真昼の羅針盤",
+    "type": "guide",
+    "message": "答えは意外と明るい場所にあります。難しく考えすぎず、いちばん自然な方向を選んでください。",
+    "image": "images/guide_03.png"
+  },
+  {
+    "id": "card_042",
+    "name": "羽衣の回復陣",
+    "type": "heal",
+    "message": "傷ついた部分を責めないでください。そこは今、静かに再生しています。やさしさが最良の薬です。",
+    "image": "images/heal_01.png"
+  },
+  {
+    "id": "card_043",
+    "name": "誤差の迷宮",
+    "type": "warn",
+    "message": "小さなズレを放置すると、大きな遠回りになります。今日は微調整を惜しまないでください。",
+    "image": "images/warn_01.png"
+  },
+  {
+    "id": "card_044",
+    "name": "終わりなき始動",
+    "type": "shift",
+    "message": "ひとつの区切りは、同時に次の起動でもあります。終わったのではなく、形を変えて続いていくのです。",
+    "image": "images/shift_03.png"
   }
 ]

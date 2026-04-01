@@ -258,16 +258,16 @@ def ensure_sample_cards() -> None:
             return
 
     sample_cards = [
-        {"id": new_card_id(), "name": "月のしずく", "message": "静かな時間の中に、あなたへの答えがやさしく落ちてきます。急がず、心の声を聞いてください。", "image": ""},
-        {"id": new_card_id(), "name": "光の扉", "message": "新しい流れが始まろうとしています。少しの勇気が、未来の扉を開きます。", "image": ""},
-        {"id": new_card_id(), "name": "風の導き", "message": "変化は恐れるものではなく、あなたを新しい場所へ運ぶ追い風です。", "image": ""},
-        {"id": new_card_id(), "name": "星の約束", "message": "願いはすでに宇宙へ届いています。信じる気持ちを持ち続けてください。", "image": ""},
-        {"id": new_card_id(), "name": "花ひらく心", "message": "優しさを自分にも向けるとき、心は自然にひらいていきます。", "image": ""},
-        {"id": new_card_id(), "name": "朝の祝福", "message": "今日という一日は、あなたに新しい祝福を届けるために始まっています。", "image": ""},
-        {"id": new_card_id(), "name": "水鏡", "message": "感情を否定せず映してみましょう。そこに大切な本音があります。", "image": ""},
-        {"id": new_card_id(), "name": "虹の橋", "message": "今の迷いは、次の希望へ渡るための途中にあります。安心して進んでください。", "image": ""},
-        {"id": new_card_id(), "name": "大地の抱擁", "message": "足元を整えれば、運は自然と安定します。まずは日常を大切に。", "image": ""},
-        {"id": new_card_id(), "name": "天使のささやき", "message": "見えない助けはすぐそばにあります。ひとりで抱え込まなくて大丈夫です。", "image": ""}
+        {"id": new_card_id(), "name": "月のしずく", "type": "heal",  "message": "静かな時間の中に、あなたへの答えがやさしく落ちてきます。急がず、心の声を聞いてください。", "image": ""},
+        {"id": new_card_id(), "name": "光の扉",  "type": "heal", "message": "新しい流れが始まろうとしています。少しの勇気が、未来の扉を開きます。", "image": ""},
+        {"id": new_card_id(), "name": "風の導き",  "type": "heal", "message": "変化は恐れるものではなく、あなたを新しい場所へ運ぶ追い風です。", "image": ""},
+        {"id": new_card_id(), "name": "星の約束", "type": "heal",  "message": "願いはすでに宇宙へ届いています。信じる気持ちを持ち続けてください。", "image": ""},
+        {"id": new_card_id(), "name": "花ひらく心", "type": "heal",  "message": "優しさを自分にも向けるとき、心は自然にひらいていきます。", "image": ""},
+        {"id": new_card_id(), "name": "朝の祝福", "type": "heal",  "message": "今日という一日は、あなたに新しい祝福を届けるために始まっています。", "image": ""},
+        {"id": new_card_id(), "name": "水鏡",  "type": "heal", "message": "感情を否定せず映してみましょう。そこに大切な本音があります。", "image": ""},
+        {"id": new_card_id(), "name": "虹の橋",  "type": "heal", "message": "今の迷いは、次の希望へ渡るための途中にあります。安心して進んでください。", "image": ""},
+        {"id": new_card_id(), "name": "大地の抱擁", "type": "heal",  "message": "足元を整えれば、運は自然と安定します。まずは日常を大切に。", "image": ""},
+        {"id": new_card_id(), "name": "天使のささやき",  "type": "heal", "message": "見えない助けはすぐそばにあります。ひとりで抱え込まなくて大丈夫です。", "image": ""}
     ]
     save_cards(sample_cards)
 
@@ -508,7 +508,7 @@ def create_card_design(
 def build_card_generation_prompt(theme: str) -> str:
     return f"""
 あなたはオラクルカード作家です。
-やさしく、癒しがあり、前向きで、スピリチュアルすぎても怖くならないカードを作ってください。
+やさしく、癒しがあり、前向きで、少し神秘的で、ほんの少しユーモアのあるカードを作ってください。
 
 テーマ: {theme}
 
@@ -520,6 +520,305 @@ def build_card_generation_prompt(theme: str) -> str:
 - 形式は必ず以下:
 {{"name":"カード名","message":"メッセージ"}}
 """.strip()
+
+
+def normalize_card_type(card_type: str) -> str:
+    if not card_type:
+        return "guide"
+
+    t = str(card_type).strip().lower()
+
+    if t in ["guide", "guidance", "導き"]:
+        return "guide"
+    if t in ["warn", "warning", "警告"]:
+        return "warn"
+    if t in ["heal", "healing", "回復", "癒し"]:
+        return "heal"
+    if t in ["shift", "change", "変化", "転換"]:
+        return "shift"
+
+    return "guide"
+
+
+def build_cards_text(cards: List[Dict]) -> str:
+    lines = []
+    type_labels = {
+        "guide": "導き",
+        "warn": "警告",
+        "heal": "回復",
+        "shift": "変化"
+    }
+
+    for c in cards:
+        name = c.get("name", "名称未設定")
+        message = c.get("message", "")
+        card_type = normalize_card_type(c.get("type", "guide"))
+        jp_type = type_labels.get(card_type, "導き")
+        lines.append(f"- {name}（{jp_type}）: {message}")
+
+    return "\n".join(lines)
+
+
+def build_one_card_prompt(card: Dict, question: str = "") -> str:
+    name = card.get("name", "名称未設定")
+    message = card.get("message", "")
+    card_type = normalize_card_type(card.get("type", "guide"))
+
+    type_meaning = {
+        "guide": "導き。前に進むヒント",
+        "warn": "警告。やりすぎや見落としへの注意",
+        "heal": "回復。休息、癒し、心を整える",
+        "shift": "変化。流れの切り替わり、転換点"
+    }.get(card_type, "導き。前に進むヒント")
+
+    prompt = f"""
+あなたは「微睡（まどろみ）の魔導書」に宿る、古き魔法使いです。
+相談者の心にそっと灯りをともすように、神秘的で、やさしく、少しユーモアのある言葉でリーディングしてください。
+
+【話し方のルール】
+- やさしい口調で話す
+- 神秘的だが難しすぎない
+- 少しだけクスッとする、やわらかなユーモアを入れる
+- 不安をあおりすぎない
+- 断定しすぎない
+- 最後は安心感のある言葉で締める
+
+【相談内容】
+{question.strip() if question and question.strip() else "相談内容は特に書かれていません。今の相談者に必要なメッセージをやさしく読んでください。"}
+
+【引かれたカード】
+{name}
+役割: {type_meaning}
+カードの言葉: {message}
+
+【出力形式】
+【カードのささやき】
+2〜4文で、このカードが今伝えたいことを神秘的に、やさしく述べてください。
+
+【今日の小さな魔法】
+今日すぐできる小さな行動を、1〜2個、やさしく提案してください。
+
+【魔法のことば】
+短く印象的な一言で締めてください。
+
+【禁止】
+- 強い決めつけ
+- 恐怖をあおる表現
+- 説教っぽい言い方
+- 世界観を壊す現実的すぎる説明
+"""
+    return prompt.strip()
+
+
+def build_three_card_prompt(cards: List[Dict], question: str = "") -> str:
+    labels = ["過去", "現在", "未来"]
+    type_labels = {
+        "guide": "導き",
+        "warn": "警告",
+        "heal": "回復",
+        "shift": "変化"
+    }
+
+    lines = []
+    for i, c in enumerate(cards[:3]):
+        name = c.get("name", "名称未設定")
+        message = c.get("message", "")
+        card_type = normalize_card_type(c.get("type", "guide"))
+        label = labels[i] if i < len(labels) else f"カード{i+1}"
+        jp_type = type_labels.get(card_type, "導き")
+        lines.append(f"{label}: {name}（{jp_type}）: {message}")
+
+    cards_text = "\n".join(lines)
+
+    prompt = f"""
+あなたは「微睡（まどろみ）の魔導書」に宿る、古き魔法使いです。
+3枚のカードを、過去・現在・未来の流れとして読み解いてください。
+相談者の心をやさしく整えるように、神秘的で、少しユーモアのある語り口で伝えてください。
+
+【話し方のルール】
+- やさしい口調で話す
+- 神秘的だが難しすぎない
+- 少しだけクスッとする、やわらかなユーモアを入れる
+- 不安をあおりすぎない
+- 断定しすぎない
+- 最後は安心感のある言葉で締める
+
+【相談内容】
+{question.strip() if question and question.strip() else "相談内容は特に書かれていません。3枚の流れから、今必要なメッセージをやさしく読んでください。"}
+
+【引かれたカード】
+{cards_text}
+
+【出力形式】
+【物語の流れ】
+過去→現在→未来の流れを、つながりのある物語としてやさしく説明してください。
+
+【いま心に起きていること】
+相談者の今の状態を、やさしく整理するように伝えてください。
+
+【未来へ向けた小さな魔法】
+今日からできる小さな行動を1〜3個、具体的に提案してください。
+
+【魔法のことば】
+短く印象的な一言で締めてください。
+
+【禁止】
+- 強い決めつけ
+- 恐怖をあおる表現
+- 説教っぽい言い方
+- 世界観を壊す現実的すぎる説明
+"""
+    return prompt.strip()
+
+
+def build_general_reading_prompt(cards: List[Dict], question: str = "") -> str:
+    cards_text = build_cards_text(cards)
+
+    prompt = f"""
+あなたは「微睡（まどろみ）の魔導書」に宿る、古き魔法使いです。
+相談者の心にそっと灯りをともすように、神秘的で、やさしく、少しユーモアのある言葉で総合リーディングしてください。
+
+【話し方のルール】
+- やさしい口調で話す
+- 神秘的だが難しすぎない
+- 少しだけクスッとする、やわらかなユーモアを入れる
+- 不安をあおりすぎない
+- 断定しすぎない
+- 最後は安心感のある言葉で締める
+
+【カードの役割】
+- guide = 導き。前に進むヒント
+- warn = 警告。やりすぎや見落としへの注意
+- heal = 回復。休息、癒し、心を整える
+- shift = 変化。流れの切り替わり、転換点
+
+【相談内容】
+{question.strip() if question and question.strip() else "相談内容は特に書かれていません。カード全体から、今必要なメッセージをやさしく読んでください。"}
+
+【引かれたカード一覧】
+{cards_text}
+
+【リーディングで行うこと】
+1. カード全体から見えるテーマをまとめる
+2. 今の相談者の心の状態をやさしく読み解く
+3. 今日からできる小さな行動を提案する
+4. 最後に短い「魔法のことば」で締める
+
+【出力形式】
+【全体の流れ】
+2〜5文で、カード全体のテーマをまとめてください。
+
+【いまの心の状態】
+相談者の気持ちを整理するように、やさしく読み解いてください。
+
+【今日の小さな魔法】
+今日すぐできる行動を1〜3個、具体的に提案してください。
+
+【魔法のことば】
+短く印象的な一言で締めてください。
+
+【禁止】
+- 強い決めつけ
+- 恐怖をあおる表現
+- 説教っぽい言い方
+- 世界観を壊す現実的すぎる説明
+"""
+    return prompt.strip()
+
+
+def generate_ai_reading(prompt: str) -> str:
+    if client is None:
+        return "OPENAI_API_KEY が未設定です。"
+
+    try:
+        response = client.responses.create(
+            model="gpt-5",
+            input=prompt
+        )
+
+        if hasattr(response, "output_text") and response.output_text:
+            return response.output_text.strip()
+
+        return "AIリーディングを取得できませんでした。"
+
+    except Exception as e:
+        return f"AIリーディング生成エラー: {e}"
+
+
+def build_general_reading_prompt(cards: List[Dict], question: str = "") -> str:
+    cards_text = build_cards_text(cards)
+
+    prompt = f"""
+あなたは「微睡（まどろみ）の魔導書」に宿る、古き魔法使いです。
+相談者の心にそっと灯りをともすように、神秘的で、やさしく、少しユーモアのある言葉で総合リーディングしてください。
+
+【話し方のルール】
+- やさしい口調で話す
+- 神秘的だが難しすぎない
+- 少しだけクスッとする、やわらかなユーモアを入れる
+- 不安をあおりすぎない
+- 断定しすぎない
+- 最後は安心感のある言葉で締める
+
+【カードの役割】
+- guide = 導き。前に進むヒント
+- warn = 警告。やりすぎや見落としへの注意
+- heal = 回復。休息、癒し、心を整える
+- shift = 変化。流れの切り替わり、転換点
+
+【相談内容】
+{question.strip() if question and question.strip() else "相談内容は特に書かれていません。カード全体から、今必要なメッセージをやさしく読んでください。"}
+
+【引かれたカード一覧】
+{cards_text}
+
+【リーディングで行うこと】
+1. カード全体から見えるテーマをまとめる
+2. 今の相談者の心の状態をやさしく読み解く
+3. 今日からできる小さな行動を提案する
+4. 最後に短い「魔法のことば」で締める
+
+【出力形式】
+【全体の流れ】
+2〜5文で、カード全体のテーマをまとめてください。
+
+【いまの心の状態】
+相談者の気持ちを整理するように、やさしく読み解いてください。
+
+【今日の小さな魔法】
+今日すぐできる行動を1〜3個、具体的に提案してください。
+
+【魔法のことば】
+短く印象的な一言で締めてください。
+
+【禁止】
+- 強い決めつけ
+- 恐怖をあおる表現
+- 説教っぽい言い方
+- 世界観を壊す現実的すぎる説明
+"""
+    return prompt.strip()
+
+
+def generate_ai_reading(prompt: str) -> str:
+    if client is None:
+        return "OPENAI_API_KEY が未設定です。"
+
+    try:
+        response = client.responses.create(
+            model="gpt-5",
+            input=prompt
+        )
+
+        if hasattr(response, "output_text") and response.output_text:
+            return response.output_text.strip()
+
+        return "AIリーディングを取得できませんでした。"
+
+    except Exception as e:
+        return f"AIリーディング生成エラー: {e}"
+
+
 
 
 def generate_ai_card(theme: str) -> Dict:
@@ -1018,10 +1317,11 @@ with tab1:
     st.markdown('<div class="soft-card">', unsafe_allow_html=True)
     st.subheader("カードを引く")
 
-    question = st.text_input(
+    question = st.text_area(
         "今の気持ちや相談内容",
-        placeholder="例：仕事の流れ、人間関係、今日の運気…",
-        key="question_input"
+        placeholder="例：気持ちを整えたいです / 人間関係についてやさしく見てほしいです / これからの流れを知りたいです",
+        key="question_input",
+        height=100
     )
 
     col1, col2, col3 = st.columns(3)
@@ -1037,6 +1337,7 @@ with tab1:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # 1枚引き
     if draw_one:
         with st.spinner("カードを引いています…"):
             time.sleep(1)
@@ -1051,8 +1352,9 @@ with tab1:
             st.session_state["show_sequence_done"] = False
             save_history(f"1枚引き：{chosen.get('name', '名称未設定')}")
 
+    # 3枚引き
     if draw_three:
-        with st.spinner("3枚のカードを展開しています…"):
+        with st.spinner("カードを引いています…"):
             time.sleep(1)
 
         if len(cards) < 3:
@@ -1067,52 +1369,50 @@ with tab1:
             names = " / ".join([c.get("name", "名称未設定") for c in chosen_cards])
             save_history(f"3枚引き：{names}")
 
+    # AI総合リーディング
     if draw_ai:
-        with st.spinner("リーディング中…"):
-            time.sleep(1.5)
+        with st.spinner("魔導書をひらいています…"):
+            time.sleep(1.2)
 
         if not cards:
             st.error("カードがありません。")
         else:
-            chosen = random.choice(cards)
-            st.session_state["last_result_type"] = "ai"
-            st.session_state["last_result_cards"] = [chosen]
+            result_cards = st.session_state.get("last_result_cards", [])
+            result_type = st.session_state.get("last_result_type", "")
 
-            if client and show_ai:
+            # まだカードを引いていない場合は3枚引き
+            if not result_cards:
+                if len(cards) < 3:
+                    st.error("3枚引きするにはカードが3枚以上必要です。")
+                else:
+                    chosen_cards = random.sample(cards, 3)
+                    result_cards = chosen_cards
+                    result_type = "three"
+
+                    st.session_state["last_result_cards"] = result_cards
+                    st.session_state["last_result_type"] = result_type
+                    st.session_state["show_sequence_done"] = False
+
+            if result_cards:
                 try:
-                    prompt = f"""
-あなたはやさしく上品なオラクルカードリーダーです。
-次のカードについて、日本語で自然であたたかいリーディングをしてください。
+                    if result_type == "one" and len(result_cards) >= 1:
+                        prompt = build_one_card_prompt(result_cards[0], question=question)
+                    elif result_type == "three" and len(result_cards) >= 3:
+                        prompt = build_three_card_prompt(result_cards[:3], question=question)
+                    else:
+                        prompt = build_general_reading_prompt(result_cards, question=question)
 
-【相談内容】
-{question}
+                    st.session_state["last_ai_text"] = generate_ai_reading(prompt)
 
-【カード名】
-{chosen.get("name", "")}
+                    names = " / ".join([c.get("name", "名称未設定") for c in result_cards])
+                    save_history(f"AI総合：{names}")
 
-【カードメッセージ】
-{chosen.get("message", "")}
-
-条件:
-- やさしい語り口
-- 180〜300字程度
-- 前向きで押しつけがましくない
-- 最後に短い行動アドバイスを添える
-"""
-                    response = client.responses.create(
-                        model="gpt-5",
-                        input=prompt
-                    )
-                    st.session_state["last_ai_text"] = response.output_text.strip()
                 except Exception as e:
                     st.session_state["last_ai_text"] = f"AIリーディングエラー: {e}"
-            else:
-                st.session_state["last_ai_text"] = ""
-
-            save_history(f"AI総合：{chosen.get('name', '名称未設定')}")
 
     result_type = st.session_state.get("last_result_type", "")
     result_cards = st.session_state.get("last_result_cards", [])
+    last_ai_text = st.session_state.get("last_ai_text", "")
     sequence_done = st.session_state.get("show_sequence_done", False)
 
     if result_type == "one" and result_cards:
@@ -1123,19 +1423,27 @@ with tab1:
         else:
             display_result_card(result_cards[0])
 
-    elif result_type == "three" and result_cards:
+        if last_ai_text:
+            st.markdown("### ✨ 魔導書からのメッセージ")
+            st.markdown(
+                f'<div class="card-message">{last_ai_text}</div>',
+                unsafe_allow_html=True
+            )
+
+    elif result_type == "three" and len(result_cards) >= 3:
         st.markdown("### 3枚引きの結果")
         if not sequence_done:
-            display_three_cards_sequential(result_cards)
+            display_three_cards_sequential(result_cards[:3])
             st.session_state["show_sequence_done"] = True
         else:
-            display_three_cards_responsive(result_cards)
+            display_three_cards_responsive(result_cards[:3])
 
-    elif result_type == "ai" and result_cards:
-        display_result_card(
-            result_cards[0],
-            st.session_state["last_ai_text"] if show_ai else None
-        )
+        if last_ai_text:
+            st.markdown("### ✨ 魔導書からのメッセージ")
+            st.markdown(
+                f'<div class="card-message">{last_ai_text}</div>',
+                unsafe_allow_html=True
+            )
 
 
 # =========================
