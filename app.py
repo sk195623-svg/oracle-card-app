@@ -1333,7 +1333,7 @@ with tab1:
         draw_three = st.button("3枚引き", use_container_width=True, key="draw_three_tab1")
 
     with col3:
-        draw_ai = st.button("AI総合リーディング", use_container_width=True, key="draw_ai_tab1")
+        draw_ai = st.button("総合リーディング", use_container_width=True, key="draw_ai_tab1")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
