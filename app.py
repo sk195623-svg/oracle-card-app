@@ -1026,23 +1026,22 @@ else:
 # tab1 占う
 # =========================
 with tab1:
-    st.markdown('<div class="soft-card">', unsafe_allow_html=True)
     st.subheader("カードを引く")
 
-question = st.text_area(
-    "今の気持ちや相談内容をご記入ください",
-    placeholder="例：今日の運気・仕事の流れ・人間関係・恋愛についてなど・・・",
-    key="question_input",
-    height=100,
-)
+    question = st.text_area(
+        "今の気持ちや相談内容を記入してください",
+        placeholder="例：今日の運気・仕事の流れ・人間関係・恋愛について等",
+        key="question_input",
+        height=100,
+    )
 
-if not question.strip():
-    question = random.choice([
-        "今日の運気を教えてください",
-        "仕事の流れを見てください",
-        "人間関係のヒントをください",
-        "恋愛についてやさしく教えてください"
-    ])
+    if not question.strip():
+        question = random.choice([
+            "今日の運気を教えてください",
+            "仕事の流れを見てください",
+            "人間関係のヒントをください",
+            "恋愛についてやさしく教えてください",
+        ])
 
     col1, col2, col3 = st.columns(3)
 
@@ -1055,8 +1054,7 @@ if not question.strip():
     with col3:
         draw_ai = st.button("総合リーディング", use_container_width=True, key="draw_ai_tab1")
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    # 1枚引き
     if draw_one:
         with st.spinner("カードを引いています…"):
             time.sleep(0.2)
@@ -1068,21 +1066,27 @@ if not question.strip():
             st.session_state["last_result_type"] = "one"
             st.session_state["last_result_cards"] = [chosen]
             st.session_state["last_ai_text"] = ""
+            st.session_state["show_sequence_done"] = False
             save_history(f"1枚引き：{chosen.get('name', '名称未設定')}")
 
+    # 3枚引き
     if draw_three:
         with st.spinner("カードを引いています…"):
             time.sleep(0.2)
 
         if len(cards) < 3:
-            st.error("3枚引きには3枚以上のカードが必要です。")
+            st.error("3枚引きするにはカードが3枚以上必要です。")
         else:
             chosen_cards = random.sample(cards, 3)
             st.session_state["last_result_type"] = "three"
             st.session_state["last_result_cards"] = chosen_cards
             st.session_state["last_ai_text"] = ""
-            save_history("3枚引き")
+            st.session_state["show_sequence_done"] = False
 
+            names = " / ".join([c.get("name", "名称未設定") for c in chosen_cards])
+            save_history(f"3枚引き：{names}")
+
+    # AI総合リーディング
     if draw_ai:
         with st.spinner("魔導書をひらいています…"):
             time.sleep(0.2)
@@ -1090,45 +1094,83 @@ if not question.strip():
         if not cards:
             st.error("カードがありません。")
         else:
-            result_cards = random.sample(cards, min(3, len(cards)))
-            st.session_state["last_result_type"] = "general"
-            st.session_state["last_result_cards"] = result_cards
-            if show_ai:
-                prompt = build_general_reading_prompt(result_cards, question)
-                st.session_state["last_ai_text"] = generate_ai_reading(prompt)
-            else:
-                st.session_state["last_ai_text"] = ""
-            save_history("総合リーディング")
+            result_cards = st.session_state.get("last_result_cards", [])
+            result_type = st.session_state.get("last_result_type", "")
 
-    result_cards = st.session_state.get("last_result_cards", [])
+            if not result_cards:
+                if len(cards) < 3:
+                    st.error("3枚引きするにはカードが3枚以上必要です。")
+                else:
+                    chosen_cards = random.sample(cards, 3)
+                    result_cards = chosen_cards
+                    result_type = "three"
+
+                    st.session_state["last_result_cards"] = result_cards
+                    st.session_state["last_result_type"] = result_type
+                    st.session_state["show_sequence_done"] = False
+
+            if result_cards:
+                try:
+                    if result_type == "one" and len(result_cards) >= 1:
+                        prompt = build_one_card_prompt(result_cards[0], question=question)
+                    elif result_type == "three" and len(result_cards) >= 3:
+                        prompt = build_three_card_prompt(result_cards[:3], question=question)
+                    else:
+                        prompt = build_general_reading_prompt(result_cards, question=question)
+
+                    st.session_state["last_ai_text"] = generate_ai_reading(prompt)
+
+                    names = " / ".join([c.get("name", "名称未設定") for c in result_cards])
+                    save_history(f"AI総合：{names}")
+
+                except Exception as e:
+                    st.session_state["last_ai_text"] = f"AIリーディングエラー: {e}"
+
     result_type = st.session_state.get("last_result_type", "")
-    ai_text = st.session_state.get("last_ai_text", "")
+    result_cards = st.session_state.get("last_result_cards", [])
+    last_ai_text = st.session_state.get("last_ai_text", "")
+    sequence_done = st.session_state.get("show_sequence_done", False)
 
     if result_type == "one" and result_cards:
-        display_one_card_with_effect(result_cards[0])
-        if show_ai:
-            if st.button("AIでこのカードを読む", key="ai_read_one_result", use_container_width=True):
-                prompt = build_one_card_prompt(result_cards[0], question)
-                st.session_state["last_ai_text"] = generate_ai_reading(prompt)
-                st.rerun()
+        st.markdown("### あなたへのカード")
+        if not sequence_done:
+            display_one_card_with_effect(result_cards[0])
+            st.session_state["show_sequence_done"] = True
+        else:
+            display_one_card_with_effect(result_cards[0])
 
-    elif result_type == "three" and result_cards:
-        display_three_cards_sequential(result_cards)
-        if show_ai:
-            if st.button("AIで3枚の流れを読む", key="ai_read_three_result", use_container_width=True):
-                prompt = build_three_card_prompt(result_cards, question)
-                st.session_state["last_ai_text"] = generate_ai_reading(prompt)
-                st.rerun()
+        if last_ai_text:
+            st.markdown("### ✨ 魔導書からのメッセージ")
+            st.markdown(
+                f'<div class="card-message">{last_ai_text}</div>',
+                unsafe_allow_html=True
+            )
+
+    elif result_type == "three" and len(result_cards) >= 3:
+        st.markdown("### 3枚引きの結果")
+        if not sequence_done:
+            display_three_cards_sequential(result_cards[:3])
+            st.session_state["show_sequence_done"] = True
+        else:
+            display_three_cards_sequential(result_cards[:3])
+
+        if last_ai_text:
+            st.markdown("### ✨ 魔導書からのメッセージ")
+            st.markdown(
+                f'<div class="card-message">{last_ai_text}</div>',
+                unsafe_allow_html=True
+            )
 
     elif result_type == "general" and result_cards:
-        display_three_cards_sequential(result_cards)
+        st.markdown("### 総合リーディング")
+        display_three_cards_sequential(result_cards[:3])
 
-    if show_ai and st.session_state.get("last_ai_text", ""):
-        st.markdown('<div class="result-card">', unsafe_allow_html=True)
-        st.subheader("🔮 AIリーディング")
-        st.write(st.session_state["last_ai_text"])
-        st.markdown('</div>', unsafe_allow_html=True)
-
+        if last_ai_text:
+            st.markdown("### ✨ 魔導書からのメッセージ")
+            st.markdown(
+                f'<div class="card-message">{last_ai_text}</div>',
+                unsafe_allow_html=True
+            )
 
 # =========================
 # tab2 カード一覧・管理
